@@ -1,11 +1,3 @@
-# Phase 1 ONLY: Infrastructure (Postgres + RabbitMQ + MinIO)
-# API / Worker / Frontend are scaffolded (empty dirs) but NOT added yet.
-# They will be added in later phases when their Dockerfiles exist,
-# so this file can actually run today with: docker compose up -d
-#
-# Spec reference: SPEC.md §11.1, §12
-# Dev credentials below are for local learning only (per spec §11.1).
-
 services:
   postgres:
     image: postgres:16.13-bookworm
@@ -15,13 +7,11 @@ services:
       POSTGRES_DB: audio_pipeline
       POSTGRES_USER: app
       POSTGRES_PASSWORD: app
-      # NOTE: srcs/db/init.sql is intentionally empty in scaffold phase.
-      # It will be mounted here once we write the schema in Phase 2.
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro  # Phase 2
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U app -d audio_pipeline"]
       interval: 5s
@@ -47,7 +37,8 @@ services:
       retries: 10
 
   minio:
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
+    # NOTE: elestio mirror for local dev; official quay.io/minio/minio is best practice for production.
+    image: elestio/minio:latest
     container_name: dap-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -64,11 +55,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-
-  # --- Future services (NOT implemented yet, scaffold only) ---
-  # api:      build ./app      -> Phase 4, port 8000, needs AUTH_SECRET_KEY
-  # worker:   build ./worker   -> Phase 5, metrics internal 9100
-  # frontend: nginx:1.29-alpine -> Phase 6, port 5173, mounts ./frontend
 
 volumes:
   postgres_data:
