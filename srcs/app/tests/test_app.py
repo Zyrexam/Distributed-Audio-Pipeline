@@ -47,3 +47,30 @@ def test_config_rejects_dummy_hash_that_is_not_bcrypt(monkeypatch):
 
     with pytest.raises(RuntimeError, match="must be a bcrypt hash"):
         Settings.from_env()
+
+
+def test_config_reads_minio_and_rabbitmq_settings(monkeypatch):
+    monkeypatch.setenv("MINIO_BUCKET", "custom-bucket")
+    monkeypatch.setenv("MINIO_SECURE", "true")
+    monkeypatch.setenv("RABBITMQ_QUEUE", "custom.jobs")
+
+    settings = Settings.from_env()
+
+    assert settings.minio_bucket == "custom-bucket"
+    assert settings.minio_secure is True
+    assert settings.rabbitmq_queue == "custom.jobs"
+
+
+def test_config_rejects_invalid_minio_secure(monkeypatch):
+    monkeypatch.setenv("MINIO_SECURE", "maybe")
+
+    with pytest.raises(RuntimeError, match="MINIO_SECURE"):
+        Settings.from_env()
+
+
+def test_metrics_endpoint_exposes_prometheus_text():
+    response = client().get("/metrics")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/plain")
+    assert "uploads_total" in response.text

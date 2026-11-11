@@ -3,13 +3,15 @@ import logging
 from contextlib import asynccontextmanager
 
 import psycopg
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from prometheus_client import CONTENT_TYPE_LATEST
 
 from app.auth.routes import router as auth_router
 from app.config import get_settings, setup_logging
 from app.infrastructure.database import db
+from app.infrastructure.metrics import render_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +78,12 @@ def create_app() -> FastAPI:
     @app.get("/health")
     async def health() -> dict:
         return {"status": "ok"}
+
+    @app.get("/metrics", include_in_schema=False)
+    async def prometheus_metrics() -> Response:
+        return Response(
+            content=render_metrics(), media_type=CONTENT_TYPE_LATEST
+        )
 
     return app
 

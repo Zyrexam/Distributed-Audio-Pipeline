@@ -6,6 +6,10 @@ from functools import lru_cache
 
 DEFAULT_DATABASE_URL = "postgresql://app:app@postgres:5432/audio_pipeline"
 DEFAULT_FRONTEND_ORIGINS = ("http://localhost:5173", "http://localhost:8080")
+DEFAULT_MINIO_ENDPOINT = "minio:9000"
+DEFAULT_MINIO_BUCKET = "raw-audio"
+DEFAULT_RABBITMQ_HOST = "rabbitmq"
+DEFAULT_RABBITMQ_QUEUE = "audio.jobs"
 
 
 @dataclass(frozen=True)
@@ -18,6 +22,15 @@ class Settings:
     auth_token_expire_minutes: int = 60
     frontend_origins: tuple[str, ...] = DEFAULT_FRONTEND_ORIGINS
     log_level: str = "INFO"
+    minio_endpoint: str = DEFAULT_MINIO_ENDPOINT
+    minio_access_key: str = "minio"
+    minio_secret_key: str = field(default="minio123", repr=False)
+    minio_bucket: str = DEFAULT_MINIO_BUCKET
+    minio_secure: bool = False
+    rabbitmq_host: str = DEFAULT_RABBITMQ_HOST
+    rabbitmq_user: str = "app"
+    rabbitmq_password: str = field(default="app", repr=False)
+    rabbitmq_queue: str = DEFAULT_RABBITMQ_QUEUE
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -72,6 +85,10 @@ class Settings:
         if log_level not in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
             raise RuntimeError(f"Invalid LOG_LEVEL: {log_level}")
 
+        secure_raw = os.getenv("MINIO_SECURE", "false").strip().lower()
+        if secure_raw not in ("true", "false", "1", "0", "yes", "no"):
+            raise RuntimeError("MINIO_SECURE must be a boolean")
+
         return cls(
             database_url=os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL),
             auth_secret_key=secret,
@@ -79,6 +96,21 @@ class Settings:
             auth_token_expire_minutes=expire,
             frontend_origins=origins,
             log_level=log_level,
+            minio_endpoint=os.getenv(
+                "MINIO_ENDPOINT", DEFAULT_MINIO_ENDPOINT
+            ),
+            minio_access_key=os.getenv("MINIO_ACCESS_KEY", "minio"),
+            minio_secret_key=os.getenv("MINIO_SECRET_KEY", "minio123"),
+            minio_bucket=os.getenv("MINIO_BUCKET", DEFAULT_MINIO_BUCKET),
+            minio_secure=secure_raw in ("true", "1", "yes"),
+            rabbitmq_host=os.getenv(
+                "RABBITMQ_HOST", DEFAULT_RABBITMQ_HOST
+            ),
+            rabbitmq_user=os.getenv("RABBITMQ_USER", "app"),
+            rabbitmq_password=os.getenv("RABBITMQ_PASSWORD", "app"),
+            rabbitmq_queue=os.getenv(
+                "RABBITMQ_QUEUE", DEFAULT_RABBITMQ_QUEUE
+            ),
         )
 
 

@@ -1,17 +1,5 @@
-"""PostgreSQL access via psycopg (raw SQL, no ORM).
-
-Production notes:
-- A small connection pool is used instead of a fresh TCP/TLS
-  connection per query.
-- Connects with a timeout so a dead DB fails fast, not hangs.
-- Callers use parameterised queries only (never string formatting
-  of user input into SQL).
-- No credentials are ever logged; errors carry no connection string.
-"""
-
 import logging
 import os
-
 import psycopg
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
@@ -19,7 +7,6 @@ from psycopg_pool import ConnectionPool
 logger = logging.getLogger(__name__)
 
 DEFAULT_DATABASE_URL = "postgresql://app:app@postgres:5432/audio_pipeline"
-
 
 def get_database_url() -> str:
     return os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)
